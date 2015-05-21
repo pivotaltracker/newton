@@ -11,7 +11,7 @@ func QTest(xs []float64, confidence float64) []float64 {
 	gap := max - maxUnder
 	r := max - min
 
-	if gap/r <= QCrit(len(xs), int(confidence*100.0)) {
+	if gap/r <= QCrit(len(xs), confidence) {
 		return xs
 	}
 
@@ -27,21 +27,23 @@ func QTest(xs []float64, confidence float64) []float64 {
 	return ns
 }
 
-func QCrit(n, confidence int) float64 {
+func QCrit(n int, confidence float64) float64 {
 	if n > 10 {
 		n = 10
 	}
 
+	c := int(confidence * 100.0)
+
 	switch {
-	case confidence < 95:
-		confidence = 90
-	case confidence < 99:
-		confidence = 95
+	case c < 95:
+		c = 90
+	case c < 99:
+		c = 95
 	default:
-		confidence = 99
+		c = 99
 	}
 
-	return qTable[confidence][n]
+	return qTable[c][n]
 }
 
 var qTable = map[int]map[int]float64{

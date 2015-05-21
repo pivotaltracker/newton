@@ -3,13 +3,15 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"math"
 	"net/http"
 	"sync"
 	"time"
 
 	"code.google.com/p/probab/dst"
-	gstats "github.com/GaryBoone/GoStats/stats"
+	"github.com/GaryBoone/GoStats/stats"
+	"github.com/SimonWaldherr/golibs/xmath"
 )
 
 type CycleTimeStat struct {
@@ -18,17 +20,17 @@ type CycleTimeStat struct {
 	SampleSize int     `json:"sample_size"`
 }
 
-func (s CycleTimeStat) Optimistic(α float64) float64 {
-	z := s.z(α)
-	return s.Mean - z*MinFloat64(s.σ()/math.Sqrt(float64(s.SampleSize)), s.Mean/(4*z))
+func (s CycleTimeStat) Optimistic(confidence float64) float64 {
+	z := s.z(confidence)
+	return s.Mean - z*MinFloat64(s.σ()/math.Sqrt(float64(s.SampleSize)), s.Mean/(1.5*z))
 }
 
-func (s CycleTimeStat) Pessimistic(α float64) float64 {
-	return s.Mean + s.z(α)*s.σ()/math.Sqrt(float64(s.SampleSize))
+func (s CycleTimeStat) Pessimistic(confidence float64) float64 {
+	return s.Mean + s.z(confidence)*s.σ()/math.Sqrt(float64(s.SampleSize))
 }
 
-func (s CycleTimeStat) z(α float64) float64 {
-	return dst.BetaQtlFor(5.0, 1.0, 1.0-α/2.0)
+func (s CycleTimeStat) z(confidence float64) float64 {
+	return dst.BetaQtlFor(1, 30, 1.0-(1.0-confidence)/2.0)
 }
 
 func (s CycleTimeStat) σ() float64 {
@@ -43,19 +45,16 @@ func (s CycleTimeStat) AdjustedStdDev() float64 {
 }
 
 func ComputeCycleTimeStats(cycleTimes map[string][]time.Duration, confidence float64) map[string]CycleTimeStat {
-	stats := make(map[string]CycleTimeStat, len(cycleTimes))
+	ctStats := make(map[string]CycleTimeStat, len(cycleTimes))
 	for key, durations := range cycleTimes {
 		data := QTest(durationsToHours(durations), confidence)
-		set := gstats.Stats{}
-		set.UpdateArray(data)
-		stat := CycleTimeStat{
-			Mean:       set.Mean(),
-			StdDev:     set.SampleStandardDeviation(),
+		ctStats[key] = CycleTimeStat{
+			Mean:       xmath.Geometric(data),
+			StdDev:     stats.StatsSampleStandardDeviation(data),
 			SampleSize: len(durations),
 		}
-		stats[key] = stat
 	}
-	return stats
+	return ctStats
 }
 
 func durationsToHours(ds []time.Duration) []float64 {
@@ -91,7 +90,7 @@ func sumCycleTime(transition storyTransition, last storyTransition, d time.Durat
 	// log.Printf("inside %s -> %s", transition.FromState, transition.ToState)
 	d = d + transition.OccurredAt.Sub(last.OccurredAt)
 
-	if transition.ToState == "unstarted" || transition.ToState == "unscheduled" || transition.ToState == "accepted" || transition.ToState == "finished" {
+	if transition.ToState == "unstarted" || transition.ToState == "unscheduled" || transition.ToState == "accepted" {
 		return dontSumCycleTime, d
 	}
 
@@ -112,6 +111,7 @@ func GetCycleTimes(token string, projectID int, stories []Story) (map[string][]t
 			defer wg.Done()
 			transitions, err := getTransitions(token, projectID, story.ID)
 			if err != nil {
+				log.Println(err)
 				return
 			}
 			if len(transitions) == 0 {

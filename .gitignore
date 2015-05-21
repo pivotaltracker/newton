@@ -23,4 +23,6 @@ _testmain.go
 *.test
 *.prof
 
-newton
+cycletimer/cycletimer
+ci_bootstrap/ci_bootstrap
+planner/planner

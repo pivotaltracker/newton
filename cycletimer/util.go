@@ -21,19 +21,14 @@ func MaxFloat64(xs ...float64) float64 {
 }
 
 func MaxUnder(under float64, xs ...float64) float64 {
-	m := xs[0]
-	if m >= under {
-		for _, x := range xs {
-			if x < under {
-				m = x
-				break
-			}
-		}
-	}
+	ns := make([]float64, 0, len(xs)-1)
+	found := false
 	for _, x := range xs {
-		if x > m && x < under {
-			m = x
+		if !found && x == under {
+			found = true
+			continue
 		}
+		ns = append(ns, x)
 	}
-	return m
+	return MaxFloat64(ns...)
 }

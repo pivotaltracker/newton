@@ -8,8 +8,9 @@ import (
 
 func GetStoriesFromPastIterations(token string, projectID int, pastIters int) ([]Story, error) {
 	uri := fmt.Sprintf(
-		"https://www.pivotaltracker.com/services/v5/projects/%d/iterations?scope=done&offset=%d&fields=stories(id,story_type,estimate)",
+		"https://www.pivotaltracker.com/services/v5/projects/%d/iterations?scope=done&limit=%d&offset=%d&fields=stories(id,story_type,estimate)",
 		projectID,
+		pastIters,
 		-pastIters,
 	)
 	req, err := http.NewRequest("GET", uri, nil)
