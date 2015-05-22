@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-func GetCycleTimes(token string, projectID int, stories []Story) (map[string][]time.Duration, error) {
+func GetCycleTimesByCategory(token string, projectID int, stories []Story) (map[string][]time.Duration, error) {
 	cycleTimes := map[string][]time.Duration{}
 	mu := &sync.Mutex{}
 	wg := &sync.WaitGroup{}
@@ -50,38 +50,6 @@ func GetCycleTimes(token string, projectID int, stories []Story) (map[string][]t
 	wg.Wait()
 
 	return cycleTimes, nil
-}
-
-// Assumes that the first transition is creation (uncreated -> *)
-// Assumes that the story has been accepted
-func getCycleTime(transitions []storyTransition) time.Duration {
-	d := time.Duration(0)
-	f := dontSumCycleTime
-	for i := 1; i < len(transitions); i++ {
-		f, d = f(transitions[i], transitions[i-1], d)
-	}
-	return d
-}
-
-type CycleTimeFn func(this storyTransition, last storyTransition, d time.Duration) (CycleTimeFn, time.Duration)
-
-func dontSumCycleTime(transition storyTransition, last storyTransition, d time.Duration) (CycleTimeFn, time.Duration) {
-	// log.Printf("outside %s -> %s", transition.FromState, transition.ToState)
-	if transition.ToState != "unstarted" && transition.ToState != "unscheduled" {
-		return sumCycleTime, d
-	}
-	return dontSumCycleTime, d
-}
-
-func sumCycleTime(transition storyTransition, last storyTransition, d time.Duration) (CycleTimeFn, time.Duration) {
-	// log.Printf("inside %s -> %s", transition.FromState, transition.ToState)
-	d = d + transition.OccurredAt.Sub(last.OccurredAt)
-
-	if transition.ToState == "unstarted" || transition.ToState == "unscheduled" || transition.ToState == "accepted" {
-		return dontSumCycleTime, d
-	}
-
-	return sumCycleTime, d
 }
 
 // returns transitions in chronological order
@@ -149,4 +117,36 @@ type activityChange struct {
 	ID             int                    `json:"id"`
 	OriginalValues map[string]interface{} `json:"original_values"`
 	NewValues      map[string]interface{} `json:"new_values"`
+}
+
+// Assumes that the first transition is creation (uncreated -> *)
+// Assumes that the story has been accepted
+func getCycleTime(transitions []storyTransition) time.Duration {
+	d := time.Duration(0)
+	f := dontSumCycleTime
+	for i := 1; i < len(transitions); i++ {
+		f, d = f(transitions[i], transitions[i-1], d)
+	}
+	return d
+}
+
+type CycleTimeFn func(this storyTransition, last storyTransition, d time.Duration) (CycleTimeFn, time.Duration)
+
+func dontSumCycleTime(transition storyTransition, last storyTransition, d time.Duration) (CycleTimeFn, time.Duration) {
+	// log.Printf("outside %s -> %s", transition.FromState, transition.ToState)
+	if transition.ToState != "unstarted" && transition.ToState != "unscheduled" {
+		return sumCycleTime, d
+	}
+	return dontSumCycleTime, d
+}
+
+func sumCycleTime(transition storyTransition, last storyTransition, d time.Duration) (CycleTimeFn, time.Duration) {
+	// log.Printf("inside %s -> %s", transition.FromState, transition.ToState)
+	d = d + transition.OccurredAt.Sub(last.OccurredAt)
+
+	if transition.ToState == "unstarted" || transition.ToState == "unscheduled" || transition.ToState == "accepted" {
+		return dontSumCycleTime, d
+	}
+
+	return sumCycleTime, d
 }

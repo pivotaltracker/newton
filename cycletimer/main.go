@@ -41,7 +41,7 @@ func main() {
 	stories, err := GetStoriesFromPastIterations(*token, *projectID, *pastIters)
 	Check(err)
 
-	cycleTimes, err := GetCycleTimes(*token, *projectID, stories)
+	cycleTimes, err := GetCycleTimesByCategory(*token, *projectID, stories)
 	Check(err)
 
 	Check(json.NewEncoder(os.Stdout).Encode(&cycleTimes))
