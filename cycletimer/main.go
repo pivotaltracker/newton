@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"flag"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -44,49 +45,11 @@ func main() {
 	Check(err)
 
 	Check(json.NewEncoder(os.Stdout).Encode(&cycleTimes))
+}
 
-	// cycleStats := ComputeCycleTimeStats(cycleTimes, *confidence)
-
-	// for category, cycleStat := range cycleStats {
-	// 	log.Printf("%s is from %.2f to %.2f days", category, cycleStat.Optimistic(*confidence)/24.0, cycleStat.Pessimistic(*confidence)/24.0)
-	// 	log.Printf("\tMean %.2f hours", cycleStat.Mean)
-	// 	log.Printf("\tStdDev %.2f hours", cycleStat.AdjustedStdDev())
-	// 	log.Printf("\tSample Size %d", cycleStat.SampleSize)
-	// }
-
-	// B := 1999
-
-	// for category, durations := range cycleTimes {
-	// 	sortedDurations := durationsToHours(durations)
-	// 	sort.Float64s(sortedDurations)
-	// 	sampleMeans := make([]float64, 0, B)
-	// 	l := len(sortedDurations)
-	// 	maxIndex := int64(l - 1)
-	// 	// rnd := func() int {
-	// 	// 	if maxIndex == 0 {
-	// 	// 		return 0
-	// 	// 	}
-	// 	// 	v, _ := crand.Int(crand.Reader, big.NewInt(maxIndex))
-	// 	// 	return int(v.Int64())
-	// 	// }
-	// 	// β := dst.Beta(2, 5)
-	// 	// rnd := func() int {
-	// 	// 	return int(xmath.FloatRound(β()*float64(maxIndex), 0))
-	// 	// }
-	// 	rnd := func() int {
-	// 		return int(xmath.FloatRound(float64(maxIndex)*rand.ExpFloat64()/math.MaxFloat64, 0))
-	// 	}
-	// 	for i := 0; i < B; i++ {
-	// 		sample := make([]float64, 0, l)
-	// 		for j := 0; j < len(sortedDurations); j++ {
-	// 			sample = append(sample, sortedDurations[rnd()])
-	// 		}
-	// 		sampleMeans = append(sampleMeans, stats.StatsMean(sample))
-	// 	}
-
-	// 	sort.Float64s(sampleMeans)
-
-	// 	log.Printf("%s is from %.2f to %.2f days (from %d samples)", category, sampleMeans[100-1]/24.0, sampleMeans[1900-1]/24.0, l)
-
-	// }
+func Check(err error) {
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
 }
