@@ -17,6 +17,7 @@ func init() {
 func main() {
 	tracks := flag.Int("tracks", 1, "The number of development tracks")
 	confidenceIntervalsFile := flag.String("ci", "", "JSON file specifiying confidence intervals for story types")
+	debug := flag.Bool("debug", false, "print debug information")
 	flag.Parse()
 
 	stories := []string{}
@@ -33,35 +34,51 @@ func main() {
 
 	oBuckets := make([]float64, *tracks)
 	oStories := make([][]string, *tracks)
+	mBuckets := make([]float64, *tracks)
+	mStories := make([][]string, *tracks)
 	pBuckets := make([]float64, *tracks)
 	pStories := make([][]string, *tracks)
 
 	for _, story := range stories {
 		oMin := MinFloat64Index(oBuckets)
+		mMin := MinFloat64Index(mBuckets)
 		pMin := MinFloat64Index(pBuckets)
 
 		oBuckets[oMin] += confidenceIntervals[story].Optimistic
 		oStories[oMin] = append(oStories[oMin], story)
 
+		mBuckets[mMin] += confidenceIntervals[story].Median
+		mStories[mMin] = append(mStories[mMin], story)
+
 		pBuckets[pMin] += confidenceIntervals[story].Pessimistic
 		pStories[pMin] = append(pStories[pMin], story)
 	}
 
-	log.Printf("Stories should take between %.2f and %.2f days", MaxFloat64(oBuckets), MaxFloat64(pBuckets))
+	log.Printf("Stories should take between %.2f and %.2f days (median %.2f days)", MaxFloat64(oBuckets), MaxFloat64(pBuckets), MaxFloat64(mBuckets))
 
-	log.Println("Optimistic tracks:")
-	for i, stories := range oStories {
-		log.Printf("\tTrack %d (%.2f days)", i+1, oBuckets[i])
-		for _, story := range stories {
-			log.Printf("\t\t%s", story)
+	if *debug {
+		log.Println("Median tracks:")
+		for i, stories := range mStories {
+			log.Printf("\tTrack %d (%.2f days)", i+1, mBuckets[i])
+			for _, story := range stories {
+				log.Printf("\t\t%s", story)
+			}
 		}
-	}
 
-	log.Println("Pessimistic tracks:")
-	for i, stories := range pStories {
-		log.Printf("\tTrack %d (%.2f days)", i+1, pBuckets[i])
-		for _, story := range stories {
-			log.Printf("\t\t%s", story)
+		log.Println("Optimistic tracks:")
+		for i, stories := range oStories {
+			log.Printf("\tTrack %d (%.2f days)", i+1, oBuckets[i])
+			for _, story := range stories {
+				log.Printf("\t\t%s", story)
+			}
+		}
+
+		log.Println("Pessimistic tracks:")
+		for i, stories := range pStories {
+			log.Printf("\tTrack %d (%.2f days)", i+1, pBuckets[i])
+			for _, story := range stories {
+				log.Printf("\t\t%s", story)
+			}
 		}
 	}
 }
@@ -69,6 +86,7 @@ func main() {
 type ConfidenceInterval struct {
 	Optimistic  float64 `json:"optimistic"`
 	Pessimistic float64 `json:"pessimistic"`
+	Median      float64 `json:"median"`
 }
 
 func Check(err error) {
