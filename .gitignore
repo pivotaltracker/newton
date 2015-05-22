@@ -24,5 +24,6 @@ _testmain.go
 *.prof
 
 cycletimer/cycletimer
-ci_bootstrap/ci_bootstrap
+summarize/summarize
 planner/planner
+dumptimes/dumptimes
